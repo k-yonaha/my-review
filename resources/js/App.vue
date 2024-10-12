@@ -1,17 +1,18 @@
 <template>
-    <div id="app">
-        <h1>Vue.jsから</h1>
-    </div>
+    <v-app>
+        <Header></Header>
+        <v-main>
+            <router-view />
+        </v-main>
+    </v-app>
 </template>
 
 <script>
-export default {
-    name: 'App',
-};
-</script>
+import Header from "./components/common/Header.vue"
 
-<style scoped>
-h1 {
-    color: #42b983;
+export default {
+    components: {
+        Header
+    }
 }
-</style>
+</script>
