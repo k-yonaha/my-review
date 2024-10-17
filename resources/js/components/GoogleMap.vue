@@ -1,10 +1,10 @@
 <script setup>
-import { shallowRef, toRaw,onMounted } from "vue";
+import { shallowRef, toRaw, onMounted } from "vue";
 import { Loader } from "@googlemaps/js-api-loader";
 
 let searchText = null;
 const googleMap = shallowRef(null);
-const marker = shallowRef(null);
+let marker = null;
 
 const loader = new Loader({
     apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
@@ -15,52 +15,97 @@ const loader = new Loader({
 
 const mapOptions = {
     center: { lat: -34.397, lng: 150.644 },
-    zoom: 4,
+    zoom: 8,
     mapId: "DEMO_MAP_ID",
 };
 onMounted(() => {
     initMap();
+
 });
 
+async function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const location = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                // マップを現在地に中心を移動
+                googleMap.value.setCenter(location);
+
+                // 新しいマーカーを追加
+                setMarker(location, "現在地");
+                return true;
+            },
+            (error) => {
+                return false;
+                console.error("位置情報の取得に失敗しました:", error);
+            }
+        );
+    } else {
+        return false;
+        alert("このブラウザは位置情報の取得できません。");
+    }
+}
 async function initMap() {
     const { Map } = await loader.importLibrary("maps");
-    const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
     googleMap.value = new Map(document.getElementById("map"), mapOptions);
+    result = getCurrentLocation();
+    // 現在地が取得できなければデフォルトのマーカーを設置する
+    if(!result) setMarker({ lat: -25.344, lng: 131.031 });
 
 
-    marker.value = new AdvancedMarkerElement({
-        map: googleMap.value,
-        position: { lat: -25.344, lng: 131.031 },
-        title: "Uluru",
+    // 検索にオートコンプリート機能追加
+    const places = await loader.importLibrary("places");
+
+    const placesOptions = {
+        componentRestrictions: { country: "jp" },
+        fields: ["address_components", "geometry", "icon", "name"],
+    };
+    const autocomplete = new places.Autocomplete(
+        document.getElementById("searchText"),
+        placesOptions
+    );
+
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        searchText = place.name;
+        addressSearch();
     });
 }
 
+// 住所検索
 const addressSearch = async () => {
     const { Geocoder } = await loader.importLibrary("geocoding");
     const geocoder = new Geocoder();
 
     geocoder.geocode({ address: searchText }, (results, status) => {
-        marker.setVisible(false);
-        marker.setMap(null);
-        marker = null;
         if (results) {
-            marker = new vm.google.maps.Marker({
-                map: vm.map,
-                position: results[0].geometry.location,
-                draggable: false,
-            });
+            setMarker(results[0].geometry.location);
             if (status === "OK") {
                 // map.setPosition({ lat: lat(), lng: lng() });
-                googleMap.setCenter(results[0].geometry.location);
+                googleMap.value.setCenter(results[0].geometry.location);
             }
         }
     });
 };
-// const center = { lat: 40.689247, lng: -74.044502 }
-// const markerOptions = { position: center, title: 'LADY LIBERTY' }
-// const pinOptions = { background: '#FBBC04' }
-// const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY
+
+// マーカー設置
+const setMarker = async (location, title = "") => {
+    const { AdvancedMarkerElement } = await loader.importLibrary("marker");
+    if (marker) {
+        marker.setMap(null);
+    }
+    marker = new AdvancedMarkerElement({
+        map: googleMap.value,
+        position: location,
+        draggable: false,
+        title: title,
+    });
+};
 </script>
 
 <template>
@@ -71,6 +116,7 @@ const addressSearch = async () => {
             v-model="searchText"
             placeholder="Search Address"
             style="display: block"
+            id="searchText"
         />
         <div>
             <button
