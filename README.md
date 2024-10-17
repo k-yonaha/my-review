@@ -67,5 +67,5 @@ $ sail npm run dev
 
 #### 画面確認
 
-http://localhost/　
+http://localhost/
 にアクセス
