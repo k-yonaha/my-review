@@ -1,24 +1,12 @@
 <template>
-    <v-app-bar color="blue-grey-lighten-3" density="compact">
-        <v-toolbar-title>Todoアプリ</v-toolbar-title>
+    <v-app-bar color="teal-lighten-2" density="compact">
+        <v-toolbar-title> マイレビュー </v-toolbar-title>
 
         <template v-slot:extension>
-            <v-tabs align-with-title>
-                <v-tab>
-                    <router-link v-bind:to="{ name: 'home' }">
-                        <button class="btn btn-success">home</button>
-                    </router-link></v-tab
-                >
-                <v-tab>
-                    <router-link v-bind:to="{ name: 'about' }">
-                        <button class="btn btn-success">ABOUT</button>
-                    </router-link></v-tab
-                >
-                <v-tab>
-                    <router-link v-bind:to="{ name: 'map' }">
-                        <button class="btn btn-success">MAP</button>
-                    </router-link></v-tab
-                >
+            <v-tabs fixed-tabs>
+                <v-tab to="/">HOME </v-tab>
+                <v-tab to="/about">ABOUT </v-tab>
+                <v-tab to="/map">MAP</v-tab>
             </v-tabs>
         </template>
     </v-app-bar>
