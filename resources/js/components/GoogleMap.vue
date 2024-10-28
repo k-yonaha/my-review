@@ -1,9 +1,12 @@
 <template>
     <div v-if="isMapsLoaded">
-        <div ref="mapContainer" class="map">
-            
-        </div>
-        <SearchText @place-selected="setPlace"></SearchText>
+        <div ref="mapContainer" class="map"></div>
+        <SearchText
+            :current-location="currentLocation"
+            :googleMap="googleMap"
+            @place-selected="setPlace"
+        ></SearchText>
+        <!-- <v-btn @click="searchInMapBounds">表示されている地図内で検索</v-btn> -->
     </div>
     <Loading v-if="loading"></Loading>
 </template>
@@ -28,12 +31,14 @@ const store = useStore();
 const mapContainer = ref(null);
 const isMapsLoaded = computed(() => store.getters["maps/isMapsLoaded"]);
 const isMarkerLoaded = computed(() => store.getters["maps/isMarkerLoaded"]);
+const isGeocoderLoaded = computed(() => store.getters["maps/isGeocoderLoaded"]);
 
 const googleMap = shallowRef(null);
 const places = shallowRef(null);
 const geoCoder = shallowRef(null);
 const marker = shallowRef(null);
-let currentLatLng = ref();
+const placesService = shallowRef(null);
+let currentLocation = ref();
 let searchText = null;
 let loading = ref(true);
 
@@ -53,33 +58,6 @@ const mapOptions = {
     mapTypeControl: false,
 };
 
-const initializeMap = async () => {
-    const mapsLibrary = store.getters["maps/getMapsLibrary"];
-    if (mapsLibrary && mapContainer.value) {
-        googleMap.value = new mapsLibrary.Map(mapContainer.value, mapOptions);
-        await getCurrentLocation();
-        if (currentLatLng.value) {
-            initializeMarker(mapsLibrary, googleMap.value);
-        }
-    }
-};
-
-const initializeMarker = async (mapsLibrary, map) => {
-    await store.dispatch("maps/loadMarkerLibrary");
-    const markerLibrary = store.getters["maps/getMarkerLibrary"];
-    // マーカーを作成
-    marker.value = new markerLibrary.AdvancedMarkerElement({
-        position: currentLatLng.value ?? defaultLatLng,
-        map: map,
-    });
-};
-
-// watch(mapContainer, (newValue) => {
-//     if (newValue && isMapsLoaded.value) {
-//         initializeMap();
-//     }
-// });
-
 onMounted(() => {
     store.dispatch("maps/loadMapsLibrary").then(() => {
         if (isMapsLoaded.value) {
@@ -88,17 +66,46 @@ onMounted(() => {
     });
 });
 
+const initializeMap = async () => {
+    const mapsLibrary = store.getters["maps/getMapsLibrary"];
+    await store.dispatch("maps/loadPlacesLibrary");
+    const placesLibrary = store.getters["maps/getPlacesLibrary"];
+    if (mapsLibrary && mapContainer.value) {
+        googleMap.value = new mapsLibrary.Map(mapContainer.value, mapOptions);
+        await getCurrentLocation();
+        if (currentLocation.value) {
+            initializeMarker(mapsLibrary, googleMap.value);
+        }
+        placesService.value = new placesLibrary.PlacesService(googleMap.value);
+    }
+};
+
+const initializeMarker = async (mapsLibrary, map) => {
+    await store.dispatch("maps/loadMarkerLibrary");
+    const markerLibrary = store.getters["maps/getMarkerLibrary"];
+    // マーカーを作成
+    marker.value = new markerLibrary.AdvancedMarkerElement({
+        position: currentLocation.value ?? defaultLatLng,
+        map: map,
+    });
+};
+
+const initializeGeocoder = async () => {
+    await store.dispatch("maps/loadGeocoderLibrary");
+    geocoder.value = store.getters["maps/getGeocoderLibrary"];
+};
+
 // 現在地の取得
 const getCurrentLocation = async () => {
     if (navigator.geolocation) {
         try {
             const position = await getCurrentPosition();
-            currentLatLng.value = {
+            currentLocation.value = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
             };
             // マップを現在地に中心を移動
-            googleMap.value.setCenter(currentLatLng.value);
+            googleMap.value.setCenter(currentLocation.value);
         } catch (error) {
             console.error("位置情報の取得に失敗しました:", error);
         }
@@ -118,27 +125,13 @@ const getCurrentPosition = () => {
     });
 };
 
-const initMap = async () => {
-    await getCurrentLocation();
-
-    // マップの中心位置を取得
-    google.maps.event.addListener(
-        googleMap.value,
-        "center_changed",
-        function () {
-            const center = googleMap.value.getCenter();
-            setAutoComplete({ lat: center.lat(), lng: center.lng() });
-        }
-    );
-};
-
 // マーカー設置
 const setMarker = async (location, title = "") => {
     if (marker) {
         marker.setMap(null);
     }
     const markerLibrary = store.getters["maps/getMarkerLibrary"];
-    marker.value = new markerLibrary.Marker({
+    marker.value = new markerLibrary.AdvancedMarkerElement({
         position,
         map: map.value,
         title: title,
@@ -157,43 +150,61 @@ const addressSearch = async () => {
         }
     });
 };
-const setAutoComplete = async (latLng) => {
-    // 検索にオートコンプリート機能追加
-    const defaultBounds = {
-        north: latLng.lat + 0.1,
-        south: latLng.lat - 0.1,
-        east: latLng.lng + 0.1,
-        west: latLng.lng - 0.1,
-    };
-    const placesOptions = {
-        componentRestrictions: { country: "jp" },
-        fields: ["address_components", "geometry", "icon", "name"],
-        locationBias: { radius: 10, center: latLng },
-        bounds: defaultBounds,
-        strictBounds: false,
-    };
+// const setAutoComplete = async (latLng) => {
+//     // 検索にオートコンプリート機能追加
+//     const defaultBounds = {
+//         north: latLng.lat + 0.1,
+//         south: latLng.lat - 0.1,
+//         east: latLng.lng + 0.1,
+//         west: latLng.lng - 0.1,
+//     };
+//     const placesOptions = {
+//         componentRestrictions: { country: "jp" },
+//         fields: ["address_components", "geometry", "icon", "name"],
+//         locationBias: { radius: 10, center: latLng },
+//         bounds: defaultBounds,
+//         strictBounds: false,
+//     };
 
-    const autocomplete = new places.value.Autocomplete(
-        document.getElementById("searchText"),
-        placesOptions
-    );
+//     const autocomplete = new places.value.Autocomplete(
+//         document.getElementById("searchText"),
+//         placesOptions
+//     );
 
-    googleMap.value.addListener("bounds_changed", () => {
-        autocomplete.locationRestriction = googleMap.value.getBounds();
-    });
+//     googleMap.value.addListener("bounds_changed", () => {
+//         autocomplete.locationRestriction = googleMap.value.getBounds();
+//     });
 
-    autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        searchText = place.name;
-        addressSearch();
-    });
-    autocomplete.bindTo("bounds", googleMap.value);
-};
+//     autocomplete.addListener("place_changed", () => {
+//         const place = autocomplete.getPlace();
+//         searchText = place.name;
+//         addressSearch();
+//     });
+//     autocomplete.bindTo("bounds", googleMap.value);
+// };
 
-const setPlace = (place) => {
+const setPlace = (places) => {
+    if (!isGeocoderLoaded.value) {
+        initializeGeocoder();
+    }
     if (places.length > 0) {
         // 最初の候補に基づいてマップを中央にする
+        console.log(places[0].geometry.location.lat());
         const firstPlace = places[0];
+
+        // geocoder.value.geocode(
+        //     { 'placeId': firstPlace.place_id },
+        //     function (results, status) {
+        //         if (status == "OK") {
+        //             googleMap.value.setCenter(location);
+        //         } else {
+        //             alert(
+        //                 "Geocode was not successful for the following reason: " +
+        //                     status
+        //             );
+        //         }
+        //     }
+        // );
         const location = firstPlace.geometry.location;
 
         // マップの中心を変更

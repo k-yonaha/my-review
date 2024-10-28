@@ -10,8 +10,8 @@
                 variant="solo"
                 hide-details
                 single-line
- 
-                @input="onInput"
+                @click:append-inner="searchClick"
+                @input="searchInput"
                 class=""
             ></v-text-field>
             <v-list v-if="suggestions.length > 0">
@@ -20,7 +20,7 @@
                     :key="index"
                     @click="selectSuggestion(suggestion)"
                 >
-                    {{ suggestion.description }}
+                    {{ suggestion.name }}
                 </v-list-item>
             </v-list>
         </v-card-text>
@@ -28,36 +28,71 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, onMounted, defineEmits } from "vue";
+import { ref, shallowRef, onMounted } from "vue";
 import { useStore } from "vuex";
+
+const props = defineProps({
+    googleMap: Object,
+    currentLocation:  Object,
+});
 
 const store = useStore();
 const emit = defineEmits();
 const searchText = ref(null);
 const searchValue = ref('');
-const autocomplete = shallowRef(null);
+const autocompleteService = shallowRef(null);
+const placesService = shallowRef(null);
 const suggestions = ref([]);
 
 const searchClick = () => {
-    emit("place-selected", suggestion);
+    const placeIds = suggestions.value.map((suggestion) => suggestion.place_id);
+    console.log(placeIds)
+    emit("place-selected", suggestions.value);
 };
 
-const onInput = async () => {
-    if (!autocompleteService.value) return;
+// const searchInput = async () => {
+//     console.log(autocompleteService.value)
+//     if (!autocompleteService.value) return;
 
-    const request = {
-        input: searchValue.value,
-        componentRestrictions: { country: "jp" },
-        fields: ["address_components", "geometry", "icon", "name"],
-    };
+//     const request = {
+//         input: searchValue.value,
+//         componentRestrictions: { country: "jp" },
 
-    autocompleteService.value.getPlacePredictions(request, (results, status) => {
-        if (status === "OK" && results) {
-            suggestions.value = results;
-        } else {
-            suggestions.value = [];
-        }
-    });
+//         // types: ["geocode"],
+//         locationBias: {lat:props.currentLocation.lat, lng:props.currentLocation.lng},
+//         // locationRestriction: {lat:props.currentLocation.lat, lng:props.currentLocation.lng},
+
+//     };
+//     console.log(props.currentLocation)
+//     autocompleteService.value.getPlacePredictions(request, (results, status) => {
+//         console.log(5555)
+//         if (status === "OK" && results) {    console.log(1212)
+//             suggestions.value = results;
+//         } else {    console.log(2222)
+//             suggestions.value = [];
+//         }
+//     });
+// };
+
+const searchInput = () => {
+    if (searchValue.value && placesService.value && props.currentLocation) {
+        const request = {
+            location: {lat:props.currentLocation.lat, lng:props.currentLocation.lng},
+            radius: 5000,
+            keyword: searchValue.value,
+            // language:"ja"
+        };
+        console.log(request)
+        placesService.value.nearbySearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {console.log(results)
+                suggestions.value = results;
+            } else {console.log(3333)
+                suggestions.value = [];
+            }
+        });
+    } else {
+        suggestions.value = [];
+    }
 };
 
 const selectSuggestion = (suggestion) => {
@@ -67,18 +102,27 @@ const selectSuggestion = (suggestion) => {
 };
 
 const initializeAutocomplete = async () => {
-    await store.dispatch("maps/loadPlacesLibrary");
-    const placesLibrary = store.getters["maps/getPlacesLibrary"];
+    // await store.dispatch("maps/loadPlacesLibrary");
+    // const placesLibrary = store.getters["maps/getPlacesLibrary"];
 
-    autocomplete.value = new placesLibrary.AutocompleteService();
+    // autocompleteService.value = new placesLibrary.AutocompleteService();
     // autocomplete.value.addListener("place_changed", () => {
     //     const place = autocomplete.value.getPlace();
     //     emit("place-selected", place);
     // });
 };
 
+const initializePlacesService = async () => {
+    await store.dispatch("maps/loadPlacesLibrary");
+    const placesLibrary = store.getters["maps/getPlacesLibrary"];
+    if (placesLibrary && props.currentLocation ) {
+        placesService.value = new placesLibrary.PlacesService(props.googleMap);
+    }
+};
+
 onMounted(() => {
-    initializeAutocomplete();
+    // initializeAutocomplete();
+    initializePlacesService();
 });
 </script>
 <style>

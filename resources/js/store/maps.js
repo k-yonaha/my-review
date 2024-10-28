@@ -14,6 +14,8 @@ const state = {
   markerLibrary: null,
   placesLoaded: false,
   placesLibrary: null,
+  GeocoderLoaded: false,
+  GeocoderLibrary: null,
 };
 
 const mutations = {
@@ -34,6 +36,12 @@ const mutations = {
   },
   setPlacesLibrary(state, library) {
     state.placesLibrary = library;
+  },
+  setGeocoderLoaded(state, loaded) {
+    state.GgeocoderLoaded = loaded;
+  },
+  setGeocoderLibrary(state, library) {
+    state.geocoderLibrary = library;
   },
 };
 
@@ -65,6 +73,15 @@ const actions = {
       console.error("Error loading places library:", error);
     }
   },
+  async loadGeocoderLibrary({ commit }) {
+    try {
+      const library = await loader.importLibrary("geocoder");
+      commit('setGeocoderLibrary', library);
+      commit('setGeocoderLoaded', true);
+    } catch (error) {
+      console.error("Error loading geocoder library:", error);
+    }
+  },
 };
 
 const getters = {
@@ -74,6 +91,8 @@ const getters = {
   getMarkerLibrary: (state) => state.markerLibrary,
   isPlacesLoaded: (state) => state.placesLoaded,
   getPlacesLibrary: (state) => state.placesLibrary,
+  isGeocoderLoaded: (state) => state.geocoderLoaded,
+  getGeocoderLibrary: (state) => state.geocoderLibrary,
 };
 
 export default {
