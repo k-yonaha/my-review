@@ -21,7 +21,7 @@ Vue3
 
 #### git cloneをする
 ```
-$ git clone https://gitlab.com/kyonakyona0615/my-log.git
+$ git clone https://github.com/k-yonaha/my-review.git
 ```
 
 #### .env.exampleをコピーする
