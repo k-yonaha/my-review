@@ -1,8 +1,9 @@
 <template>
     <div v-if="isMapsLoaded">
         <div ref="mapContainer" class="map">
-            <SearchText @place-selected="setPlace"></SearchText>
+            
         </div>
+        <SearchText @place-selected="setPlace"></SearchText>
     </div>
     <Loading v-if="loading"></Loading>
 </template>
