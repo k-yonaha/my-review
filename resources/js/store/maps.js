@@ -75,7 +75,7 @@ const actions = {
   },
   async loadGeocoderLibrary({ commit }) {
     try {
-      const library = await loader.importLibrary("geocoder");
+      const library = await loader.importLibrary("geocoding");
       commit('setGeocoderLibrary', library);
       commit('setGeocoderLoaded', true);
     } catch (error) {

@@ -4,6 +4,7 @@
         <SearchText
             :current-location="currentLocation"
             :googleMap="googleMap"
+            :placesService="placesService"
             @place-selected="setPlace"
         ></SearchText>
         <!-- <v-btn @click="searchInMapBounds">表示されている地図内で検索</v-btn> -->
@@ -92,7 +93,8 @@ const initializeMarker = async (mapsLibrary, map) => {
 
 const initializeGeocoder = async () => {
     await store.dispatch("maps/loadGeocoderLibrary");
-    geocoder.value = store.getters["maps/getGeocoderLibrary"];
+    const { Geocoder } = store.getters["maps/getGeocoderLibrary"];
+    geoCoder.value = new Geocoder();
 };
 
 // 現在地の取得
@@ -126,14 +128,14 @@ const getCurrentPosition = () => {
 };
 
 // マーカー設置
-const setMarker = async (location, title = "") => {
-    if (marker) {
-        marker.setMap(null);
+const setMarker = async (location, title = "", isReset = false) => {
+    if (isReset) {
+        marker.value.setMap(null);
     }
     const markerLibrary = store.getters["maps/getMarkerLibrary"];
     marker.value = new markerLibrary.AdvancedMarkerElement({
-        position,
-        map: map.value,
+        position: location,
+        map: googleMap.value,
         title: title,
     });
 };
@@ -189,22 +191,7 @@ const setPlace = (places) => {
     }
     if (places.length > 0) {
         // 最初の候補に基づいてマップを中央にする
-        console.log(places[0].geometry.location.lat());
         const firstPlace = places[0];
-
-        // geocoder.value.geocode(
-        //     { 'placeId': firstPlace.place_id },
-        //     function (results, status) {
-        //         if (status == "OK") {
-        //             googleMap.value.setCenter(location);
-        //         } else {
-        //             alert(
-        //                 "Geocode was not successful for the following reason: " +
-        //                     status
-        //             );
-        //         }
-        //     }
-        // );
         const location = firstPlace.geometry.location;
 
         // マップの中心を変更
