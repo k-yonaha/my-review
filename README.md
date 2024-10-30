@@ -1,27 +1,20 @@
-# マイログ
+# Google Maps Platformの基本的な使用
 
-# 要件
-個人用の口コミ
-
-#### 下記の機能を使えるようにする
-* ログ登録/変更/削除  
-→ レビューや評価が行える  
-→ 任意でGoogleの口コミ投稿も行える  
-
-* 一覧検索  
-→ 過去のレビューから絞り込み、現在地からのソート機能
-
+- mapの表示
+- マーカー設置
+- 現在地から入力された値の候補を取得
+- storeで各APIライブラリーの管理
 
 # 構成
 Docker Desktop  
 Laravel Framework 11.27.2  
-Vue3
+Vue3(Vuetify,Vuex)
 
 # ローカル環境構築手順
 
 #### git cloneをする
 ```
-$ git clone https://github.com/k-yonaha/my-review.git
+$ git clone https://github.com/k-yonaha/vue-google-map-api.git
 ```
 
 #### .env.exampleをコピーする
