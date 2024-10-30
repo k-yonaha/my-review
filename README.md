@@ -24,7 +24,21 @@ $ cp .env.example .env
 
 #### .envの中身を修正
 ```
+# データベース設定
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE={hogehoge}
+DB_USERNAME={hogehoge}
+DB_PASSWORD={hogehoge}
+
+~~~~
+
 VITE_GOOGLE_API_KEY={google apiで取得したKEY}
+```
+
+#### ライブラリのインストール(composerがない場合はインストールしてください。)
+```
+$ composer install
 ```
 
 #### エイリアスの設定
